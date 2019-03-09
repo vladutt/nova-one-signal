@@ -8,6 +8,7 @@
           <p>You can add dynamic values from the current player data by including <strong>"::player_model_key::"</strong> in your content.</p>
           <p>Example: <strong>"Welcome ::firstname::!"</strong> would send <strong>"Welcome Yassi!"</strong></p>
         </div>
+
         <div>
           <field-wrapper>
             <div class="w-1/5 py-6 px-8">
@@ -24,6 +25,7 @@
             </div>
           </field-wrapper>
         </div>
+
         <div>
           <field-wrapper>
             <div class="w-1/5 py-6 px-8">
@@ -40,6 +42,7 @@
             </div>
           </field-wrapper>
         </div>
+
         <div>
           <field-wrapper>
             <div class="w-1/5 py-6 px-8">
@@ -53,38 +56,57 @@
                         id="message"
                         name="message"
                         placeholder="Message"
-                        required />
-              </div>
+                        required></textarea>
+            </div>
           </field-wrapper>
         </div>
 
-  <div class="p-8">
+        <div class="p-8">
+          <div class="flex justify-between">
+            <input class="form-control flex-1 form-input form-input-bordered mr-4"
+                   v-model="filter"
+                   placeholder="Filter recipients..." />
+            <button class="btn mx-4 btn-default btn-primary"
+                    @click="selectAll"
+                    type="button">Select all</button>
+            <button class="btn ml-4 btn-default btn-danger"
+                    @click="unselectAll"
+                    type="button">Unselect all</button>
+          </div>
 
-        <input class="w-full form-control form-input form-input-bordered"
-                v-model="filter"
-                placeholder="Filter recipients..." />
+          <div class="flex flex-wrap m-8 overflow-auto text-center justify-center"
+               style="max-height: 300px;">
 
-        <div class="flex flex-wrap m-8 overflow-auto" style="max-height: 300px;">
-            <div class="rounded-full cursor-pointer font-bold bg-90 text-center avatar text-white flex items-center justify-center p-4 overflow-hidden relative"  v-for="(player, index) in filteredPlayers" :key="index"
-            :class="{ 'border-success border-4': isSelected(player) }"
-            @click="toggleSelection(player)">
+            <template v-if="filteredPlayers.length > 0">
+              <div class="rounded-full cursor-pointer font-bold bg-90 text-center avatar text-white flex items-center justify-center p-4 overflow-hidden relative"
+                   v-for="(player, index) in filteredPlayers"
+                   :key="index"
+                   :class="{ 'border-success border-4': isSelected(player) }"
+                   @click="toggleSelection(player)">
                 <span class="z-50">{{player[nameKey]}}</span>
-                <img v-if="avatarKey" :src="player[avatarKey]" :alt="player[nameKey]" class="opacity-75 absolute w-full h-auto"/>
-            </div>
+                <img v-if="avatarKey"
+                     :src="player[avatarKey]"
+                     :alt="player[nameKey]"
+                     class="opacity-75 absolute w-full h-auto" />
+              </div>
+            </template>
+
+            <template v-else>
+              <h2>No matching recipients.</h2>
+            </template>
+
+          </div>
+
+          <p>Number of recipients: <strong>{{notification.players.length}}/{{players.length}}</strong></p>
         </div>
 
-        <p>Number of recipients: <strong>{{notification.players.length}}/{{players.length}}</strong></p>
+        <div class="bg-30 flex px-8 py-4">
+          <progress-button type="submit"
+                           :disabled="loading || invalidNotification"
+                           :processing="loading">
+            {{ __('Send notification') }}
+          </progress-button>
         </div>
-
-                <div class="bg-30 flex px-8 py-4">
-                    <progress-button
-                        type="submit"
-                        :disabled="loading || invalidNotification"
-                        :processing="loading"
-                    >
-                        {{ __('Send notification') }}
-                    </progress-button>
-                </div>
       </form>
     </card>
 
@@ -137,6 +159,20 @@ export default {
       } else {
         this.notification.players.push(player)
       }
+    },
+
+    /**
+     * Select all recipients.
+     */
+    selectAll() {
+      this.notification.players = this.players
+    },
+
+    /**
+     * Unselect all recipients.
+     */
+    unselectAll() {
+      this.notification.players = []
     },
 
     /**

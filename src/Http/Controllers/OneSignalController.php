@@ -36,7 +36,7 @@ class OneSignalController extends BaseController
      */
     public function __construct()
     {
-        $this->setApiKey(env('ONE_SIGNAL_API_KEY'))->setAppId(env('ONE_SIGNAL_APP_ID'));
+        $this->setApiKey(config('one_signal.api_key'))->setAppId(config('one_signal.app_id'));
     }
 
     /**
@@ -46,7 +46,11 @@ class OneSignalController extends BaseController
      */
     public function getAuthenticatables()
     {
-        return $this->authenticatables()->get();
+        return [
+            'list' => $this->authenticatables()->get(),
+            'name' => config('one_signal.name'),
+            'avatar' => config('one_signal.avatar'),
+        ];
     }
 
     /**
@@ -56,8 +60,8 @@ class OneSignalController extends BaseController
      */
     private function authenticatables()
     {
-        $authenticatable_class = config('onesignal.authenticatable_class') ?? \App\Authenticatable::class;
-        return $authenticatable_class::whereIn('id', $this->getPlayers()->pluck('external_user_id'));
+        $model = config('one_signal.model');
+        return $model::whereIn('id', $this->getPlayers()->pluck('external_user_id'));
     }
 
     /**

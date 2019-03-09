@@ -4,8 +4,6 @@ namespace Yassi\OneSignal;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
-use Laravel\Nova\Events\ServingNova;
-use Laravel\Nova\Nova;
 use Yassi\OneSignal\Http\Middleware\Authorize;
 
 class ToolServiceProvider extends ServiceProvider
@@ -23,9 +21,9 @@ class ToolServiceProvider extends ServiceProvider
             $this->routes();
         });
 
-        Nova::serving(function (ServingNova $event) {
-            //
-        });
+        if ($this->app->runningInConsole()) {
+            $this->publishes([__DIR__ . '/../config/one_signal.php' => base_path('config/one_signal.php')], 'config');
+        }
     }
 
     /**

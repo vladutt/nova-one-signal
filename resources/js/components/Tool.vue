@@ -68,8 +68,8 @@
             <div class="rounded-full cursor-pointer font-bold bg-90 text-center avatar text-white flex items-center justify-center p-4 overflow-hidden relative"  v-for="(player, index) in filteredPlayers" :key="index"
             :class="{ 'border-success border-4': isSelected(player) }"
             @click="toggleSelection(player)">
-                <span class="z-50">{{player.name}}</span>
-                <img :src="player.avatar" :alt="player.name" class="opacity-75 absolute w-full h-auto"/>
+                <span class="z-50">{{player[nameKey]}}</span>
+                <img v-if="avatarKey" :src="player[avatarKey]" :alt="player[nameKey]" class="opacity-75 absolute w-full h-auto"/>
             </div>
         </div>
 
@@ -104,13 +104,15 @@ export default {
       },
       players: [],
       filter: null,
-      loading: true
+      loading: true,
+      nameKey: null,
+      avatarKey: null
     }
   },
 
   computed: {
     filteredPlayers() {
-      return this.filter ? this.players.filter(p => p.name.toLowerCase().includes(this.filter.toLowerCase())) : this.players
+      return this.filter ? this.players.filter(p => p[this.nameKey].toLowerCase().includes(this.filter.toLowerCase())) : this.players
     },
 
     invalidNotification() {
@@ -119,10 +121,16 @@ export default {
   },
 
   methods: {
+    /**
+     * Check whetehr the current player is selected.
+     */
     isSelected(player) {
       return this.notification.players.includes(player)
     },
 
+    /**
+     * Toggle selection of the player.
+     */
     toggleSelection(player) {
       if (this.isSelected(player)) {
         this.notification.players.splice(this.notification.players.indexOf(player), 1)
@@ -131,6 +139,9 @@ export default {
       }
     },
 
+    /**
+     * Send the notification.
+     */
     async send() {
       try {
         this.loading = true
@@ -143,11 +154,18 @@ export default {
     }
   },
 
-  async mounted() {
-    const { data } = await axios.get('/nova-vendor/nova-one-signal/authenticatables')
-    this.players = data
-    this.loading = false
-  },
+  /**
+   * Set the list of available players.
+   */
+  async beforeRouteEnter(to, from, next) {
+    const { data: { list, name, avatar } } = await axios.get('/nova-vendor/nova-one-signal/authenticatables')
+    next(vm => {
+      vm.nameKey = name
+      vm.avatarKey = avatar
+      vm.players = list
+      vm.loading = false
+    })
+  }
 }
 </script>
 

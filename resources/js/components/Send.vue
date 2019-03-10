@@ -9,7 +9,13 @@
 
     <card>
       <form @submit.prevent="send">
-
+        <div class="flex items-enter justify-center">
+          <span class="mx-4 p-4 text-success cursor-pointer"
+                @click="selectLocale(key)"
+                :class="{'font-bold': selectedLocale === key  }"
+                v-for="(locale, key) in locales"
+                :key="key">{{locale}}</span>
+        </div>
         <div>
           <field-wrapper>
             <div class="w-1/5 py-6 px-8">
@@ -19,7 +25,7 @@
             </div>
             <div class="py-6 px-8 w-full">
               <input class="w-full form-control form-input form-input-bordered"
-                     v-model="notification.title"
+                     v-model="notification.titles[selectedLocale]"
                      id="title"
                      name="title"
                      :placeholder="`${__('Title')} (${__('optional')})`" />
@@ -36,7 +42,7 @@
             </div>
             <div class="py-6 px-8 w-full">
               <input class="w-full form-control form-input form-input-bordered"
-                     v-model="notification.subtitle"
+                     v-model="notification.subtitles[selectedLocale]"
                      id="subtitle"
                      name="subtitle"
                      :placeholder="`${__('Subtitle')} (${__('optional')})`" />
@@ -53,11 +59,11 @@
             </div>
             <div class="py-6 px-8 w-full">
               <textarea class="w-full form-control form-input form-input-bordered py-3 h-auto"
-                        v-model="notification.message"
+                        v-model="notification.messages[selectedLocale]"
                         id="message"
                         name="message"
                         :placeholder="__('Message')"
-                        required></textarea>
+                        :required="selectedLocale === fallbackLocale"></textarea>
             </div>
           </field-wrapper>
         </div>
@@ -120,14 +126,17 @@ export default {
   data() {
     return {
       notification: {
-        title: null,
-        subtitle: null,
-        message: null,
+        titles: {},
+        subtitles: {},
+        messages: {},
         recipients: [],
       },
       recipients: [],
       filter: null,
       loading: true,
+      locales: [],
+      selectedLocale: null,
+      fallbackLocale: null,
       nameKey: null,
       avatarKey: null
     }
@@ -139,7 +148,7 @@ export default {
     },
 
     invalidNotification() {
-      return !this.notification.message || this.notification.recipients.length < 1
+      return !this.notification.messages[this.fallbackLocale] || this.notification.recipients.length < 1
     }
   },
 
@@ -177,6 +186,13 @@ export default {
     },
 
     /**
+     * Set the current locale.
+     */
+    selectLocale(key) {
+      this.selectedLocale = key
+    },
+
+    /**
      * Send the notification.
      */
     async send() {
@@ -195,11 +211,14 @@ export default {
    * Set the list of available recipients.
    */
   async beforeRouteEnter(to, from, next) {
-    const { data: { list, name, avatar } } = await axios.get('/nova-vendor/nova-one-signal/authenticatables')
+    const { data: { list, name, avatar, locales, fallbackLocale } } = await axios.get('/nova-vendor/nova-one-signal/authenticatables')
     next(vm => {
       vm.nameKey = name
       vm.avatarKey = avatar
       vm.recipients = list
+      vm.locales = locales
+      vm.selectedLocale = fallbackLocale
+      vm.fallbackLocale = fallbackLocale
       vm.loading = false
     })
   }

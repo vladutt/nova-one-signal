@@ -58,6 +58,8 @@ class NovaOneSignalController extends BaseController
             'list' => $this->authenticatables()->get(),
             'name' => config('one_signal.name'),
             'avatar' => config('one_signal.avatar'),
+            'locales' => config('one_signal.locales'),
+            'fallbackLocale' => config('one_signal.fallback_locale'),
         ];
     }
 
@@ -132,23 +134,39 @@ class NovaOneSignalController extends BaseController
     /**
      * Format the given text with the dynamic values.
      *
-     * @param  Model  $player
+     * @param  Model  $recipient
      * @param  string  $text
      * @return  string
      */
-    protected function formatText(Model $player, string $text)
+    protected function formatText(Model $recipient, string $text)
     {
         $matches = [];
 
         preg_match_all('/::(\w+)::/', $text, $matches, PREG_SET_ORDER);
 
         foreach ($matches as [$full, $key]) {
-            $text = str_replace($full, $player->$key, $text);
+            $text = str_replace($full, $recipient->$key, $text);
         }
 
         return $text;
     }
 
+    /**
+     * Format text for each available locale.
+     *
+     * @param  Model  $recipient
+     * @param  array  $texts
+     * @return  string
+     */
+    protected function formatTextWithLocales(Model $recipient, array $texts)
+    {
+        $locales = collect(config('one_signal.locales') ?? ['en' => 'English']);
+        $fallbackLocale = config('one_signal.fallback_locale');
+
+        return $locales->mapWithKeys(function ($locale, $key) use ($texts, $recipient, $fallbackLocale) {
+            return [$key => $this->formatText($recipient, $texts[$key] ?? $texts[$fallbackLocale])];
+        });
+    }
     /**
      * Send a notification.
      *
@@ -158,24 +176,20 @@ class NovaOneSignalController extends BaseController
     {
         $recipients = $this->getIncludedRecipients($request->recipients);
 
-        foreach ($recipients as $player) {
+        $fallbackLocale = config('one_signal.fallback_locale');
+
+        foreach ($recipients as $recipient) {
             $params = [
-                'include_player_ids' => $this->getRecipients()->where('external_user_id', $player->id)->pluck('id'),
-                'contents' => [
-                    'en' => $this->formatText($player, $request->message),
-                ],
+                'include_player_ids' => $this->getRecipients()->where('external_user_id', $recipient->id)->pluck('id'),
+                'contents' => $this->formatTextWithLocales($recipient, $request->messages),
             ];
 
-            if (isset($request->title)) {
-                $params['headings'] = [
-                    'en' => $this->formatText($player, $request->title),
-                ];
+            if (isset($request->titles) && isset($request->titles[$fallbackLocale])) {
+                $params['headings'] = $this->formatTextWithLocales($recipient, $request->titles);
             }
 
-            if (isset($request->subtitle)) {
-                $params['subtitle'] = [
-                    'en' => $this->formatText($player, $request->subtitle),
-                ];
+            if (isset($request->subtitles) && isset($request->subtitles[$fallbackLocale])) {
+                $params['subtitle'] = $this->formatTextWithLocales($recipient, $request->subtitles);
             }
 
             $this->request('notifications', 'POST', $params);

@@ -1,11 +1,11 @@
 <?php
 
-namespace Yassi\OneSignal;
+namespace Yassi\NovaOneSignal;
 
 use Laravel\Nova\Nova;
 use Laravel\Nova\Tool;
 
-class OneSignal extends Tool
+class NovaOneSignal extends Tool
 {
     /**
      * Perform any tasks that need to happen when the tool is booted.

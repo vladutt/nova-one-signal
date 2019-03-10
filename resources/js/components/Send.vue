@@ -1,19 +1,20 @@
 <template>
   <div>
-    <heading class="mb-6">Send a notification</heading>
+    <heading>{{__('Send a notification')}}</heading>
+
+    <div class="py-6 px-8 w-full text-center">
+      <p v-html="__(`You can add dynamic values from the current recipient data by including <strong>::recipient_model_key::</strong> in your content.`)"></p>
+      <p v-html="__(`Example: <strong>Welcome ::firstname::!</strong> would send <strong>Welcome Yassi!</strong>`)"></p>
+    </div>
 
     <card>
       <form @submit.prevent="send">
-        <div class="py-6 px-8 w-full text-center">
-          <p>You can add dynamic values from the current player data by including <strong>"::player_model_key::"</strong> in your content.</p>
-          <p>Example: <strong>"Welcome ::firstname::!"</strong> would send <strong>"Welcome Yassi!"</strong></p>
-        </div>
 
         <div>
           <field-wrapper>
             <div class="w-1/5 py-6 px-8">
               <form-label label-for="title">
-                Title
+                {{__('Title')}}
               </form-label>
             </div>
             <div class="py-6 px-8 w-full">
@@ -21,7 +22,7 @@
                      v-model="notification.title"
                      id="title"
                      name="title"
-                     placeholder="Title (optional)" />
+                     :placeholder="`${__('Title')} (${__('optional')})`" />
             </div>
           </field-wrapper>
         </div>
@@ -30,7 +31,7 @@
           <field-wrapper>
             <div class="w-1/5 py-6 px-8">
               <form-label label-for="subtitle">
-                Subtitle
+                {{__('Subtitle')}}
               </form-label>
             </div>
             <div class="py-6 px-8 w-full">
@@ -38,7 +39,7 @@
                      v-model="notification.subtitle"
                      id="subtitle"
                      name="subtitle"
-                     placeholder="Subtitle (optional)" />
+                     :placeholder="`${__('Subtitle')} (${__('optional')})`" />
             </div>
           </field-wrapper>
         </div>
@@ -47,7 +48,7 @@
           <field-wrapper>
             <div class="w-1/5 py-6 px-8">
               <form-label label-for="message">
-                Message
+                {{__('Message')}}
               </form-label>
             </div>
             <div class="py-6 px-8 w-full">
@@ -55,7 +56,7 @@
                         v-model="notification.message"
                         id="message"
                         name="message"
-                        placeholder="Message"
+                        :placeholder="__('Message')"
                         required></textarea>
             </div>
           </field-wrapper>
@@ -65,39 +66,39 @@
           <div class="flex justify-between">
             <input class="form-control flex-1 form-input form-input-bordered mr-4"
                    v-model="filter"
-                   placeholder="Filter recipients..." />
+                   :placeholder="__('Filter recipients...')" />
             <button class="btn mx-4 btn-default btn-primary"
                     @click="selectAll"
-                    type="button">Select all</button>
+                    type="button">{{__('Select all')}}</button>
             <button class="btn ml-4 btn-default btn-danger"
                     @click="unselectAll"
-                    type="button">Unselect all</button>
+                    type="button">{{__('Unselect all')}}</button>
           </div>
 
           <div class="flex flex-wrap m-8 overflow-auto text-center justify-center"
-               style="max-height: 300px;">
+               style="max-height: 500px;">
 
-            <template v-if="filteredPlayers.length > 0">
-              <div class="rounded-full cursor-pointer font-bold bg-90 text-center avatar text-white flex items-center justify-center p-4 overflow-hidden relative"
-                   v-for="(player, index) in filteredPlayers"
+            <template v-if="filteredRecipients.length > 0">
+              <div class="rounded-full cursor-pointer font-bold bg-90 text-center avatar text-white flex items-center justify-center p-4 overflow-hidden relative m-2"
+                   v-for="(recipient, index) in filteredRecipients"
                    :key="index"
-                   :class="{ 'border-success border-4': isSelected(player) }"
-                   @click="toggleSelection(player)">
-                <span class="z-50">{{player[nameKey]}}</span>
+                   :class="{ 'border-success border-4': isSelected(recipient) }"
+                   @click="toggleSelection(recipient)">
+                <span class="z-50">{{recipient[nameKey]}}</span>
                 <img v-if="avatarKey"
-                     :src="player[avatarKey]"
-                     :alt="player[nameKey]"
-                     class="opacity-75 absolute w-full h-auto" />
+                     :src="recipient[avatarKey]"
+                     :alt="recipient[nameKey]"
+                     class="opacity-75 absolute h-auto" />
               </div>
             </template>
 
             <template v-else>
-              <h2>No matching recipients.</h2>
+              <h2>{{__('No matching recipients.')}}</h2>
             </template>
 
           </div>
 
-          <p>Number of recipients: <strong>{{notification.players.length}}/{{players.length}}</strong></p>
+          <p>{{__('Number of recipients:')}} <strong>{{notification.recipients.length}}/{{recipients.length}}</strong></p>
         </div>
 
         <div class="bg-30 flex px-8 py-4">
@@ -122,9 +123,9 @@ export default {
         title: null,
         subtitle: null,
         message: null,
-        players: [],
+        recipients: [],
       },
-      players: [],
+      recipients: [],
       filter: null,
       loading: true,
       nameKey: null,
@@ -133,31 +134,31 @@ export default {
   },
 
   computed: {
-    filteredPlayers() {
-      return this.filter ? this.players.filter(p => p[this.nameKey].toLowerCase().includes(this.filter.toLowerCase())) : this.players
+    filteredRecipients() {
+      return this.filter ? this.recipients.filter(p => p[this.nameKey].toLowerCase().includes(this.filter.toLowerCase())) : this.recipients
     },
 
     invalidNotification() {
-      return !this.notification.message || this.notification.players.length < 1
+      return !this.notification.message || this.notification.recipients.length < 1
     }
   },
 
   methods: {
     /**
-     * Check whetehr the current player is selected.
+     * Check whetehr the current recipient is selected.
      */
-    isSelected(player) {
-      return this.notification.players.includes(player)
+    isSelected(recipient) {
+      return this.notification.recipients.includes(recipient)
     },
 
     /**
-     * Toggle selection of the player.
+     * Toggle selection of the recipient.
      */
-    toggleSelection(player) {
-      if (this.isSelected(player)) {
-        this.notification.players.splice(this.notification.players.indexOf(player), 1)
+    toggleSelection(recipient) {
+      if (this.isSelected(recipient)) {
+        this.notification.recipients.splice(this.notification.recipients.indexOf(recipient), 1)
       } else {
-        this.notification.players.push(player)
+        this.notification.recipients.push(recipient)
       }
     },
 
@@ -165,14 +166,14 @@ export default {
      * Select all recipients.
      */
     selectAll() {
-      this.notification.players = this.players
+      this.notification.recipients = this.recipients
     },
 
     /**
      * Unselect all recipients.
      */
     unselectAll() {
-      this.notification.players = []
+      this.notification.recipients = []
     },
 
     /**
@@ -191,14 +192,14 @@ export default {
   },
 
   /**
-   * Set the list of available players.
+   * Set the list of available recipients.
    */
   async beforeRouteEnter(to, from, next) {
     const { data: { list, name, avatar } } = await axios.get('/nova-vendor/nova-one-signal/authenticatables')
     next(vm => {
       vm.nameKey = name
       vm.avatarKey = avatar
-      vm.players = list
+      vm.recipients = list
       vm.loading = false
     })
   }
@@ -210,4 +211,8 @@ export default {
 .avatar
     height: 6rem
     width: 6rem
+    flex: 6rem 0 0
+    > img
+      min-height: 100%
+      min-width: 100%
 </style>

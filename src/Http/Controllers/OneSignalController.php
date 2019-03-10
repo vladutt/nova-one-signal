@@ -1,13 +1,21 @@
 <?php
 
-namespace Yassi\OneSignal\Http\Controllers;
+namespace Yassi\NovaOneSignal\Http\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller as BaseController;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
+use Laravel\Nova\Fields\BelongsTo;
+use Laravel\Nova\Fields\Boolean;
+use Laravel\Nova\Fields\Date;
+use Laravel\Nova\Fields\Text;
+use Laravel\Nova\Nova;
 
-class OneSignalController extends BaseController
+class NovaOneSignalController extends BaseController
 {
 
     /**
@@ -25,11 +33,11 @@ class OneSignalController extends BaseController
     protected $appId;
 
     /**
-     * Players.
+     * Recipients.
      *
      * @var array
      */
-    protected $players;
+    protected $recipients;
 
     /**
      * Constructor method.
@@ -54,6 +62,52 @@ class OneSignalController extends BaseController
     }
 
     /**
+     * Get all recipients for the index page.
+     *
+     * @return  array
+     */
+    public function getRecipientsForIndex()
+    {
+        $recipients = $this->getRecipients();
+        $fields = config('one_signal.recipients_fields') ?? '*';
+        $allKeys = collect($recipients[0])->keys()->all();
+
+        $keys = $fields === '*' ? $allKeys : collect($fields)->filter(function ($field) use ($allKeys) {
+            return in_array($field, $allKeys);
+        });
+
+        $resourceClass = Nova::resourceForModel(config('one_signal.model'));
+
+        return $recipients->map(function ($recipient) use ($keys, $resourceClass) {
+            return [
+                'resourceName' => $resourceClass::uriKey(),
+                'fields' => $keys->map(function ($key) use ($recipient, $resourceClass) {
+                    $properName = Str::title(str_replace('_', ' ', $key));
+
+                    switch ($key) {
+                        case 'external_user_id':
+                            return (new BelongsTo(__('Recipient'), $resourceClass::uriKey(), $resourceClass))->withMeta([
+                                'belongsToId' => $recipient->$key,
+                                'value' => $this->authenticatables()->find($recipient->$key)->{config('one_signal.name')} ?? null,
+                            ]);
+                        case 'invalid_identifier':
+                            return (new Boolean($properName))->withMeta(['value' => $recipient->$key]);
+                        case 'created_at':
+                        case 'updated_at':
+                        case 'last_active':
+                            return (new Date($properName))->withMeta(['value' => (new Carbon($recipient->$key))->format('Y-m-d H:i:s')]);
+                        default:
+                            return (new Text($properName))->withMeta(['value' => $recipient->$key]);
+                    }
+                }),
+                'id' => [
+                    'value' => $recipient->id,
+                ],
+            ];
+        });
+    }
+
+    /**
      * Get authentictables builder.
      *
      * @return  Builder
@@ -61,18 +115,18 @@ class OneSignalController extends BaseController
     private function authenticatables()
     {
         $model = config('one_signal.model');
-        return $model::whereIn('id', $this->getPlayers()->pluck('external_user_id'));
+        return $model::whereIn('id', $this->getRecipients()->pluck('external_user_id'));
     }
 
     /**
      * Get included player ids by uahtnticatable id.
      *
-     * @param  array  $players
+     * @param  array  $recipients
      * @return  array
      */
-    private function getIncludedPlayers(array $players)
+    private function getIncludedRecipients(array $recipients)
     {
-        return $this->authenticatables()->whereIn('id', collect($players)->pluck('id'))->get();
+        return $this->authenticatables()->whereIn('id', collect($recipients)->pluck('id'))->get();
     }
 
     /**
@@ -102,11 +156,11 @@ class OneSignalController extends BaseController
      */
     public function send(Request $request)
     {
-        $players = $this->getIncludedPlayers($request->players);
+        $recipients = $this->getIncludedRecipients($request->recipients);
 
-        foreach ($players as $player) {
+        foreach ($recipients as $player) {
             $params = [
-                'include_player_ids' => $this->getPlayers()->where('external_user_id', $player->id)->pluck('id'),
+                'include_player_ids' => $this->getRecipients()->where('external_user_id', $player->id)->pluck('id'),
                 'contents' => [
                     'en' => $this->formatText($player, $request->message),
                 ],
@@ -175,25 +229,25 @@ class OneSignalController extends BaseController
     }
 
     /**
-     * Get players.
+     * Get recipients.
      *
      * @return  string
      */
-    public function getPlayers()
+    public function getRecipients()
     {
-        return $this->players ?? $this->setPlayers();
+        return $this->recipients ?? $this->setRecipients();
     }
 
     /**
-     * Set the list of players
+     * Set the list of recipients
      *
      * @return  array
      */
-    public function setPlayers()
+    public function setRecipients()
     {
-        $this->players = collect($this->request('players')->players);
+        $this->recipients = collect($this->request('players')->players);
 
-        return $this->players;
+        return $this->recipients;
     }
 
     /**

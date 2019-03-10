@@ -1,9 +1,9 @@
 <?php
 
-namespace Yassi\OneSignal\Http\Middleware;
+namespace Yassi\NovaOneSignal\Http\Middleware;
 
 use Laravel\Nova\Nova;
-use Yassi\OneSignal\OneSignal;
+use Yassi\NovaOneSignal\NovaOneSignal;
 
 class Authorize
 {
@@ -29,6 +29,6 @@ class Authorize
      */
     public function matchesTool($tool)
     {
-        return $tool instanceof OneSignal;
+        return $tool instanceof NovaOneSignal;
     }
 }

@@ -13,5 +13,8 @@ use Illuminate\Support\Facades\Route;
 |
  */
 
-Route::get('/authenticatables', 'Yassi\OneSignal\Http\Controllers\OneSignalController@getAuthenticatables');
-Route::post('/send', 'Yassi\OneSignal\Http\Controllers\OneSignalController@send');
+Route::get('/authenticatables', 'Yassi\NovaOneSignal\Http\Controllers\NovaOneSignalController@getAuthenticatables');
+
+Route::get('/recipients-index', 'Yassi\NovaOneSignal\Http\Controllers\NovaOneSignalController@getRecipientsForIndex');
+
+Route::post('/send', 'Yassi\NovaOneSignal\Http\Controllers\NovaOneSignalController@send');

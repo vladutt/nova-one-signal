@@ -291,7 +291,7 @@ class NovaOneSignalController extends BaseController
         curl_close($ch);
 
         if (isset($response->error) || isset($response->errors)) {
-            throw new \Exception($response->errors[0] ?? $response->error);
+            throw new \Exception(json_encode($response->errors) ?? $response->error);
         }
 
         return $response;
